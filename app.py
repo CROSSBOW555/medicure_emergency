@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
 
@@ -73,7 +73,7 @@ def call_ai_for_symptom_check(symptoms):
     """
     Uses the Gemini API to analyze symptoms and suggest a starting question ID.
     """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelaanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
     
     # We define the possible diagnosis categories we want the AI to match to.
     diagnosis_categories = {
@@ -125,6 +125,11 @@ def call_ai_for_symptom_check(symptoms):
     except Exception as e:
         print(f"Error calling AI: {e}")
         return "start" # Default fallback on error
+
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.htm')
 
 
 @app.route('/api/symptom_check', methods=['POST'])
