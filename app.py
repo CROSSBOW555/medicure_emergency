@@ -164,7 +164,8 @@ def answer():
     current_q_id = data.get('current_q_id')
     answer = data.get('answer')
 
-    if current_q_id == 'initial':
+    # This is the corrected line:
+    if answer == 'initial':
         # This is the entry point for the guided quiz, so we start at the beginning.
         next_q_id = 'start'
     else:
@@ -185,6 +186,6 @@ def answer():
             "next_q_id": next_q_id,
             "question": next_question['question']
         })
-
 if __name__ == '__main__':
     app.run(debug=True)
+
