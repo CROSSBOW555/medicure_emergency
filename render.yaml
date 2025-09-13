@@ -1,0 +1,11 @@
+services:
+
+type: web
+name: emergency-health-quiz
+env: python
+buildCommand: "pip install -r requirements.txt"
+startCommand: "gunicorn app:app"
+envVars:
+
+key: GEMINI_API_KEY
+value: "AIzaSyCe_nITKBNdXDIoY4GYb9R-jZ4ZfDbqJXM"

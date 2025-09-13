@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Emergency Health Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div id="quiz-container" class="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center space-y-6">
+        <div id="title-section" class="space-y-2">
+            <h1 class="text-3xl font-bold text-gray-800">Emergency Health Quiz</h1>
+            <p class="text-gray-500">Answer a few questions to help identify a potential medical emergency. For a real emergency, always call 911 (or your local emergency number) first.</p>
+        </div>
+        
+        <!-- Symptom Check Area -->
+        <div id="symptom-area" class="space-y-4">
+            <p class="text-gray-600">You can start with a general description of symptoms:</p>
+            <input id="symptoms-input" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g., 'He is clutching his chest and his arm hurts'">
+            <button id="symptoms-btn" class="w-full bg-green-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 active:bg-green-700">Check Symptoms</button>
+            <hr class="my-4">
+            <p class="text-gray-600">Or, start with the guided quiz below:</p>
+            <button id="start-quiz-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 active:bg-gray-700">Start Guided Quiz</button>
+        </div>
+
+        <!-- Quiz/Diagnosis Area (hidden initially) -->
+        <div id="quiz-area" class="hidden space-y-6">
+            <div id="question-box" class="bg-green-50 rounded-lg p-6 text-xl font-semibold text-green-800 transition-all duration-300 transform scale-100">
+                <span id="question-text"></span>
+            </div>
+
+            <div id="diagnosis-box" class="hidden bg-red-100 rounded-lg p-6 text-red-800 border-2 border-red-500">
+                <p id="diagnosis-text" class="font-bold text-xl"></p>
+                <p class="mt-4 text-sm text-gray-600">This tool is for informational purposes only. Please seek professional medical help immediately.</p>
+            </div>
+
+            <!-- Button container for yes/no answers -->
+            <div id="button-container" class="flex justify-center space-x-4">
+                <button id="yes-btn" class="bg-green-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 active:bg-green-700">Yes</button>
+                <button id="no-btn" class="bg-red-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 active:bg-red-700">No</button>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden">
+            <p class="text-gray-400">Please wait...</p>
+        </div>
+    </div>
+
+    <script>
+        // All JavaScript logic is contained here to make the file self-sufficient
+        document.addEventListener('DOMContentLoaded', () => {
+            const symptomArea = document.getElementById('symptom-area');
+            const symptomsInput = document.getElementById('symptoms-input');
+            const symptomsBtn = document.getElementById('symptoms-btn');
+            const startQuizBtn = document.getElementById('start-quiz-btn');
+            const quizArea = document.getElementById('quiz-area');
+            const questionBox = document.getElementById('question-box');
+            const questionText = document.getElementById('question-text');
+            const diagnosisBox = document.getElementById('diagnosis-box');
+            const diagnosisText = document.getElementById('diagnosis-text');
+            const buttonContainer = document.getElementById('button-container');
+            const yesBtn = document.getElementById('yes-btn');
+            const noBtn = document.getElementById('no-btn');
+            const loading = document.getElementById('loading');
+
+            let currentQuestionId = 'start';
+
+            // Function to handle fetching the next state (question or diagnosis)
+            async function fetchNextState(answer) {
+                loading.classList.remove('hidden');
+                quizArea.classList.add('opacity-50');
+                buttonContainer.classList.add('hidden');
+
+                try {
+                    const response = await fetch('/api/answer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ current_q_id: currentQuestionId, answer: answer }),
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'question') {
+                        currentQuestionId = data.next_q_id;
+                        questionText.textContent = data.question;
+                        questionBox.classList.remove('hidden');
+                        diagnosisBox.classList.add('hidden');
+                        buttonContainer.classList.remove('hidden');
+                    } else if (data.status === 'diagnosis') {
+                        questionBox.classList.add('hidden');
+                        diagnosisBox.classList.remove('hidden');
+                        diagnosisText.textContent = data.diagnosis;
+                        buttonContainer.classList.add('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    questionText.textContent = 'An error occurred. Please try again.';
+                    buttonContainer.classList.remove('hidden');
+                } finally {
+                    loading.classList.add('hidden');
+                    quizArea.classList.remove('opacity-50');
+                }
+            }
+
+            // Function to handle the initial AI-powered symptom check
+            async function fetchInitialQuestion(symptoms) {
+                loading.classList.remove('hidden');
+                symptomArea.classList.add('hidden');
+                quizArea.classList.add('opacity-50');
+
+                try {
+                    const response = await fetch('/api/symptom_check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symptoms: symptoms }),
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'question') {
+                        currentQuestionId = data.next_q_id;
+                        questionText.textContent = data.question;
+                        quizArea.classList.remove('hidden');
+                        buttonContainer.classList.remove('hidden');
+                    } else {
+                        // Fallback to a standard start if AI fails
+                        currentQuestionId = 'start';
+                        questionText.textContent = "I'm having trouble understanding. Let's start with a standard check: Are they conscious and responsive?";
+                        quizArea.classList.remove('hidden');
+                        buttonContainer.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('AI symptom check failed:', error);
+                    currentQuestionId = 'start';
+                    questionText.textContent = "A network error occurred. Let's start with a standard check: Are they conscious and responsive?";
+                    quizArea.classList.remove('hidden');
+                    buttonContainer.classList.remove('hidden');
+                } finally {
+                    loading.classList.add('hidden');
+                    quizArea.classList.remove('opacity-50');
+                }
+            }
+
+            // Event listeners
+            yesBtn.addEventListener('click', () => fetchNextState('yes'));
+            noBtn.addEventListener('click', () => fetchNextState('no'));
+            startQuizBtn.addEventListener('click', () => {
+                symptomArea.classList.add('hidden');
+                quizArea.classList.remove('hidden');
+                fetchNextState('initial');
+            });
+            symptomsBtn.addEventListener('click', () => {
+                const symptoms = symptomsInput.value.trim();
+                if (symptoms) {
+                    fetchInitialQuestion(symptoms);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
